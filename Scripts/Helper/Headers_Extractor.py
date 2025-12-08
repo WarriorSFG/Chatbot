@@ -52,6 +52,23 @@ with open(HeadersS, 'w+') as f:
     for item in Submission_Headers:
         f.write(item + '\n')
 
+countC = 0
+countS = 0
+with open(databaseC, 'rb') as db:
+    dctx = zstd.ZstdDecompressor()
+    with dctx.stream_reader(db) as reader:
+        text_stream = io.TextIOWrapper(reader, encoding='utf-8')
+        for line in text_stream:
+            countC +=1
+
+with open(databaseS, 'rb') as db:
+    dctx = zstd.ZstdDecompressor()
+    with dctx.stream_reader(db) as reader:
+        text_stream = io.TextIOWrapper(reader, encoding='utf-8')
+        for line in text_stream:
+            countS +=1
+
+
 duplicate = 0
 for item in Submission_Headers:
     if item in Comment_Headers:
@@ -60,4 +77,6 @@ for item in Submission_Headers:
 print("Total comment fields :", len(Comment_Headers))
 print("Total submission fields :", len(Submission_Headers))
 print("Total duplicate fields :", duplicate)
+print("Total comments :", countC)
+print("Total submissions :", countS)
 print("Extraction complete.")
