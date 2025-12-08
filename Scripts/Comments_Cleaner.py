@@ -52,9 +52,13 @@ with open(database, 'rb') as db:
         with dctx.stream_reader(db) as reader:
             text_stream = io.TextIOWrapper(reader, encoding='utf-8')
             count = 0
+            process = 0
             for line in text_stream:
                 try:
                     obj = json.loads(line)
+                    process+=1
+                    if process%1000 == 0:
+                        print(f"process {process} rows")
                     if not verify_usability(obj):
                         continue
                     body = obj.get('body', '')
@@ -69,7 +73,7 @@ with open(database, 'rb') as db:
                     count += 1
                     if count % 10000 == 0:
                         f.write('\n'.join(obj_batch) + '\n')
-                        print(f"Processed {count} valid rows...", end='\r')
+                        print(f"Added {count} valid rows...", end='\r')
                         obj_batch.clear()
                 except json.JSONDecodeError as e:
                     print(e)
