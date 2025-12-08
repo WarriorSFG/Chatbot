@@ -44,13 +44,15 @@ def verify_usability(obj):
     author = obj.get('author', 'bot')
     if body in ['[removed]', '[deleted]']:
         return False
-    if score < 3:
+    if score < 50:
         return  False
     if author in CommonBotsList or author.lower().endswith('bot'):
         return False
     if len(body) < 15 or len(body) > 1000:
         return False
     if 'http' in body or 'www.' in body:
+        return False
+    if '![gif]' in body:
         return False
     if not isenglish(body):
         return False
@@ -75,6 +77,8 @@ with open(database, 'rb') as db:
                         continue
                     body = obj.get('body', '')
                     body = re.split(r'(?i)\n\s*edit:', body)[0]
+                    body = re.sub(r"^>.*$", "", body, flags=re.MULTILINE)
+                    body = re.sub(r"<[^>]+>", "", body)
                     subreddit = obj.get('subreddit', 'AskReddit')
                     score = obj.get('score', 0)
                     body = squeeze_repeats(body)
