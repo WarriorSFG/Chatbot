@@ -126,7 +126,7 @@ with open(DATABASE, "rb") as db:
 
                     if count % 100000 == 0:
                         f.write("\n".join(batch) + "\n")
-                        print(f"Processed {count} valid submissions...", end="\r")
+                        print(f"Processed {count} valid submissions...")
                         batch.clear()
 
                 except json.JSONDecodeError:
