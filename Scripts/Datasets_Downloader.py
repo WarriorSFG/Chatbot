@@ -2,7 +2,7 @@ from datasets import load_dataset
 import json
 import os
 
-output_directory = r"..\..\Datasets"
+output_directory = r"..\Datasets"
 
 def save_to_json(data, filename):
     path = os.path.join(output_directory,filename)
