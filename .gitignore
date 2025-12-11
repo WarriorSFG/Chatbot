@@ -213,9 +213,11 @@ Datasets/Reddit_train.jsonl
 Datasets/Evol_Code.jsonl
 Datasets/Math_PoT.jsonl
 Datasets/Math_CoT.jsonl
-Datasets/Python_Syntax.jsonl
-Datasets/CoT.jsonl
-Datasets/PoT.jsonl
-Datasets/Python_Code.jsonl
-Datasets/Math_WordProblems.jsonl
+Datasets/Train/Python_Syntax.jsonl
+Datasets/Train/CoT.jsonl
+Datasets/Train/PoT.jsonl
+Datasets/Train/Python_Code.jsonl
+Datasets/Train/Math_WordProblems.jsonl
 Datasets/final_training.jsonl
+Datasets/Train/Reddit.jsonl
+Datasets/Train/final_training.jsonl

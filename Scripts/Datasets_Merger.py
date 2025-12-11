@@ -3,8 +3,8 @@ import json
 import random
 
 
-DATASETS_DIR = "../Datasets"
-OUTPUT_FILE = "../Datasets/final_training.jsonl"
+DATASETS_DIR = r"../Datasets/Train"
+OUTPUT_FILE = r"../Datasets/Train/final_training.jsonl"
 VALID_EXTENSIONS = (".jsonl",)
 BATCH_SIZE = 100_000
 
