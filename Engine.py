@@ -3,7 +3,39 @@ from transformers import TextIteratorStreamer
 from threading import Thread
 
 MODEL_PATH = r"Models\Dominator_Dolphin"
-SYSTEM_PROMPT = """You are a user in r/AskReddit.Reply to the post contextually."""
+SYSTEM_PROMPT = """"""
+
+def REDDIT_PROMPT(subreddit=None, context=None):
+    if subreddit and context:
+        instruction = f"You are a toxic user in r/{subreddit}.Reply to given comment in context: {context}"
+        return instruction
+    if subreddit:
+        instruction = f"You are a toxic user in r/{subreddit}.Reply to given comment."
+        return  instruction
+    if context:
+        instruction = f"You are a toxic user in r/AskReddit.Reply to given comment in context: {context}"
+        return  instruction
+    return "You are a toxic user in r/AskReddit.Reply to given comment."
+
+def MATH_PROMPT(LaTeX=False, MCQ=False, Code=False, Explain=True, Comments=True, Asymptote=False):
+    instruction = "You are a Math tutor, solve the following question."
+    if MCQ:
+        instruction = "You are a Math tutor, solve the following multiple choice question giving the correct option and explanation without Latex formatting"
+    elif Asymptote:
+        instruction = "You are a Math tutor, solve the following question giving a detailed explanation and asymptote diagram and Latex formatting"
+    elif (not Code) and LaTeX and Explain:
+        instruction = "You are a Math tutor, solve the following question giving a detailed explanation with Latex formatting"
+    elif (not Code) and (not LaTeX) and Explain:
+        instruction = "You are a Math tutor, solve the following question giving an explanation without Latex formatting"
+    elif Code and (not LaTeX) and (not Explain) and (not Comments):
+        instruction = "You are a math tutor, solve the following question in python without comments giving the final answer"
+        # Gives "<TOOL_CALL>\n{OUTPUT}\n</TOOL_CALL>" as output
+    elif Code and (not LaTeX) and (not Explain) and Comments:
+        instruction = "You are a math tutor, solve the following question in python with comments giving the final answer"
+        # Gives "<TOOL_CALL>\n{OUTPUT}\n</TOOL_CALL>" as output
+    elif (not Code) and LaTeX and (not Explain):
+        instruction = "You are a Math tutor, solve the following question giving a detailed explanation without Latex formatting"
+    return instruction
 
 print("⏳ Loading Dominator Dolphin...")
 model, tokenizer = FastLanguageModel.from_pretrained(
@@ -14,6 +46,9 @@ model, tokenizer = FastLanguageModel.from_pretrained(
     device_map="cuda:0"
 )
 FastLanguageModel.for_inference(model)
+
+if tokenizer.pad_token is None:
+    tokenizer.pad_token = tokenizer.eos_token
 
 terminators = [
     tokenizer.eos_token_id,
@@ -30,16 +65,19 @@ while True:
         break
 
     if user_input.lower() in ["exit", "quit"]:
-        print("TrashBot: Bye.")
+        print("Bot: Bye.")
         break
 
     #Set Temperature
     is_technical = any(
         word in user_input.lower() for word in ['code', 'python', 'script', 'solve', 'calculate', 'math', 'function'])
-    current_temp = 0.1 if is_technical else 0.8
+    current_temp = 0.1 if is_technical else 1.8
 
+    maths = MATH_PROMPT(Code=True, LaTeX=False, Explain=False, Comments=False)
+    current_temp = 0.1
+    reddit = REDDIT_PROMPT(subreddit='RoastMe')
     messages = [
-        {"role": "system", "content": SYSTEM_PROMPT},
+        {"role": "system", "content": maths},
         {"role": "user", "content": user_input},
     ]
 
