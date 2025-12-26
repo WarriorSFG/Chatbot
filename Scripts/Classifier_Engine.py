@@ -10,7 +10,7 @@ MODEL_PATH = r"..\Models\Classifier\Router.pth"
 VECTORIZER_PATH = r"..\VectorStorage\vectorizer.pkl"
 ENCODER_PATH = r"..\VectorStorage\encoder.pkl"
 
-MAX_FEATURES = 9000
+MAX_FEATURES = 12000
 
 
 # ================= 1. DEFINE ARCHITECTURE =================
