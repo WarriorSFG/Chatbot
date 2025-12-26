@@ -1,10 +1,89 @@
+import re
+import torch
+import pickle
+import torch.nn as nn
+from threading import Thread
+from nltk.corpus import stopwords
+from nltk.stem.porter import PorterStemmer
 from unsloth import FastLanguageModel
 from transformers import TextIteratorStreamer
-from threading import Thread
 
 MODEL_PATH = r"Models\Dominator_Dolphin"
 SYSTEM_PROMPT = """"""
 
+# ================= CONFIGURATION =================
+CLASSIFIER_PATH = r"Models\Classifier\Router.pth"
+VECTORIZER_PATH = r"VectorStorage\vectorizer.pkl"
+ENCODER_PATH = r"VectorStorage\encoder.pkl"
+
+MAX_FEATURES = 9000
+
+
+# ================= DEFINE ARCHITECTURE =================
+class Net(nn.Module):
+    def __init__(self, input_dim, output_dim):
+        super(Net, self).__init__()
+        self.fc1 = nn.Linear(input_dim, 512)
+        self.fc2 = nn.Linear(512, 256)
+        self.fc3 = nn.Linear(256, output_dim)
+        self.dropout = nn.Dropout(0.3)
+
+    def forward(self, x):
+        x = torch.relu(self.fc1(x))
+        x = self.dropout(x)
+        x = torch.relu(self.fc2(x))
+        x = self.fc3(x)
+        return x
+
+
+# ================= LOAD ARTIFACTS =================
+print("⏳ Loading model components...")
+
+with open(VECTORIZER_PATH, "rb") as f:
+    vectorizer = pickle.load(f)
+
+with open(ENCODER_PATH, "rb") as f:
+    encoder = pickle.load(f)
+
+device = torch.device("cpu")
+Classifier = Net(input_dim=MAX_FEATURES, output_dim=3)
+Classifier.load_state_dict(torch.load(CLASSIFIER_PATH, map_location=device))
+Classifier.eval()
+
+print("✅ Model Loaded!")
+
+# ================= PREPROCESSING LOGIC =================
+ps = PorterStemmer()
+stop_words = set(stopwords.words('english'))
+
+
+def clean_text(text):
+    if not isinstance(text, str): return ""
+    text = re.sub(r'[^a-z0-9+=*<> -]', ' ', text.lower())
+    words = text.split()
+    return ' '.join([ps.stem(w) for w in words if w not in stop_words])
+
+
+# ================= PREDICT FUNCTION =================
+def get_prediction(text):
+    # 1. Clean
+    cleaned_text = clean_text(text)
+    # 2. Vectorize
+    vectorized_input = vectorizer.transform([cleaned_text]).toarray()
+    # 3. Convert to Tensor
+    tensor_input = torch.tensor(vectorized_input, dtype=torch.float32).to(device)
+    # 4. Predict
+    with torch.no_grad():
+        output = Classifier(tensor_input)
+        prediction_index = torch.argmax(output, dim=1).item()
+        probs = torch.softmax(output, dim=1)
+        confidence = probs[0][prediction_index].item()
+    label = encoder.inverse_transform([prediction_index])[0]
+
+    return label, confidence
+
+
+# ================= PROMPTS =================
 def REDDIT_PROMPT(subreddit=None, context=None):
     if subreddit and context:
         instruction = f"You are a toxic user in r/{subreddit}.Reply to given comment in context: {context}"
@@ -37,6 +116,10 @@ def MATH_PROMPT(LaTeX=False, MCQ=False, Code=False, Explain=True, Comments=True,
         instruction = "You are a Math tutor, solve the following question giving a detailed explanation without Latex formatting"
     return instruction
 
+def CODE_PROMPT():
+    instruction = "You are a Senior Python Developer. Write a Python program to solve this."
+    return instruction
+
 print("⏳ Loading Dominator Dolphin...")
 model, tokenizer = FastLanguageModel.from_pretrained(
     model_name=MODEL_PATH,
@@ -61,6 +144,8 @@ print("--------------------------------------------------")
 while True:
     try:
         user_input = input("\nYou: ")
+        label, conf = get_prediction(user_input)
+        print(f"🤖 Prediction: {label.upper()} ({conf:.1%})")
     except EOFError:
         break
 
@@ -68,16 +153,25 @@ while True:
         print("Bot: Bye.")
         break
 
-    #Set Temperature
+    '''
     is_technical = any(
         word in user_input.lower() for word in ['code', 'python', 'script', 'solve', 'calculate', 'math', 'function'])
-    current_temp = 0.1 if is_technical else 1.8
+    current_temp = 0.1 if is_technical else 1.8'''
 
-    maths = MATH_PROMPT(Code=True, LaTeX=False, Explain=False, Comments=False)
-    current_temp = 0.1
-    reddit = REDDIT_PROMPT(subreddit='RoastMe')
+    #Set Temperature
+    if label == 'MATH' or label == 'CODE':
+        current_temp = 0.1
+    else:
+        current_temp = 0.8
+
+    content = REDDIT_PROMPT(subreddit='RoastMe')
+    if label == 'MATH':
+        content = MATH_PROMPT(Code=True, LaTeX=False, Explain=False, Comments=False)
+    elif label == 'CODE':
+        content = CODE_PROMPT()
+
     messages = [
-        {"role": "system", "content": maths},
+        {"role": "system", "content": content},
         {"role": "user", "content": user_input},
     ]
 
