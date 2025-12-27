@@ -34,9 +34,9 @@ with open(r"..\..\VectorStorage\encoder.pkl", "rb") as f: encoder = pickle.load(
 class Net(nn.Module):
     def __init__(self, input_dim, output_dim):
         super(Net, self).__init__()
-        self.fc1 = nn.Linear(input_dim, 512)
-        self.fc2 = nn.Linear(512, 256)
-        self.fc3 = nn.Linear(256, output_dim)
+        self.fc1 = nn.Linear(input_dim, 64)
+        self.fc2 = nn.Linear(64, 32)
+        self.fc3 = nn.Linear(32, output_dim)
         self.dropout = nn.Dropout(0.5)
 
     def forward(self, x):

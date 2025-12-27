@@ -306,6 +306,18 @@ SYNTHETIC_MAP = {
 print("🚜 Loading Data...")
 data_frames = []
 
+
+def add_noise(text):
+    if not isinstance(text, str): return ""
+    words = text.split()
+    if len(words) < 3: return text  # Don't break short phrases like "5 + 5"
+
+    # 20% chance to drop a random word (Simulates typos/slang)
+    if random.random() < 0.2:
+        words.pop(random.randint(0, len(words) - 1))
+
+    return ' '.join(words)
+
 for category, paths in FILES.items():
     for path in paths:
         try:
@@ -323,7 +335,8 @@ for category, phrases in SYNTHETIC_MAP.items():
     df_synth = pd.DataFrame({'input': phrases})
     df_synth['category'] = category
 
-    df_synth = pd.concat([df_synth] * 200, ignore_index=True)
+    #df_synth = pd.concat([df_synth] * 2, ignore_index=True)
+    df_synth['input'] = df_synth['input'].apply(add_noise)
     data_frames.append(df_synth)
     print(f"   Injected {len(df_synth)} synthetic rows for '{category}'")
 
@@ -365,9 +378,9 @@ train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True)
 class Net(nn.Module):
     def __init__(self, input_dim, output_dim):
         super(Net, self).__init__()
-        self.fc1 = nn.Linear(input_dim, 512)
-        self.fc2 = nn.Linear(512, 256)
-        self.fc3 = nn.Linear(256, output_dim)
+        self.fc1 = nn.Linear(input_dim, 64)
+        self.fc2 = nn.Linear(64, 32)
+        self.fc3 = nn.Linear(32, output_dim)
         self.dropout = nn.Dropout(0.5)
 
     def forward(self, x):
