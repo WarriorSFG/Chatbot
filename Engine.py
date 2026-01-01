@@ -138,10 +138,29 @@ terminators = [
     tokenizer.convert_tokens_to_ids("<|im_end|>")
 ]
 
+# ================= HISTORY =================
+class ChatHistory:
+    def __init__(self, max_turns=5):
+        self.history = [] # List of {"role": "user/assistant", "content": "..."}
+        self.max_turns = max_turns
+
+    def add(self, role, content):
+        self.history.append({"role": role, "content": content})
+        # Keep only the last N turns * 2 (User + Bot pairs)
+        if len(self.history) > self.max_turns * 2:
+            self.history = self.history[-(self.max_turns * 2):]
+
+    def get_context_string(self):
+        # formatted as "User: ... \nBot: ... \n"
+        return "\n".join([f"{msg['role'].title()}: {msg['content']}" for msg in self.history])
+
+chat_history = ChatHistory(max_turns=5)
+
 print("\n🗑️ DOMINATOR DOLPHIN ONLINE. (Type 'exit' to quit)")
 print("--------------------------------------------------")
 
 while True:
+    label=''
     try:
         user_input = input("\nYou: ")
         label, conf = get_prediction(user_input)
@@ -157,16 +176,17 @@ while True:
     is_technical = any(
         word in user_input.lower() for word in ['code', 'python', 'script', 'solve', 'calculate', 'math', 'function'])
     current_temp = 0.1 if is_technical else 1.8'''
+    context_str = chat_history.get_context_string()
 
     #Set Temperature
-    if label == 'MATH' or label == 'CODE':
+    if (label.upper()).strip() == 'MATH' or (label.upper()).strip() == 'CODE':
         current_temp = 0.1
     else:
         current_temp = 0.8
 
-    print(f'set temperature to {current_temp}')
 
-    content = REDDIT_PROMPT(subreddit='RoastMe')
+    print(f'set temperature to {current_temp}')
+    content = REDDIT_PROMPT(subreddit='RoastMe', context=context_str)
     if label == 'MATH':
         content = MATH_PROMPT(Code=True, LaTeX=False, Explain=False, Comments=False)
     elif label == 'CODE':
@@ -182,12 +202,14 @@ while True:
         tokenize=True,
         add_generation_prompt=True,
         return_tensors="pt",
+        return_dict=True
     ).to("cuda")
 
     streamer = TextIteratorStreamer(tokenizer, skip_prompt=True, skip_special_tokens=True)
 
     generation_kwargs = dict(
-        input_ids=inputs,
+        input_ids=inputs["input_ids"],
+        attention_mask=inputs["attention_mask"],
         streamer=streamer,
         max_new_tokens=1024,
         use_cache=True,
@@ -201,9 +223,12 @@ while True:
     thread.start()
 
     print("Bot:", end=" ")
-
+    full_response = ""
     for new_text in streamer:
         if "<|im_end|>" not in new_text:
             print(new_text, end="", flush=True)
-
+            full_response += new_text
     print()
+
+    chat_history.add("user", user_input)
+    chat_history.add("bot", full_response)
