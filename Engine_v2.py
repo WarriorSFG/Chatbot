@@ -148,16 +148,24 @@ terminators = [
 
 # ================= PROMPTS =================
 def REDDIT_PROMPT(subreddit=None, context=None):
-    if subreddit and context:
-        instruction = f"You are a toxic user in r/{subreddit}.Reply to given comment in context: {context}"
-        return instruction
-    if subreddit:
-        instruction = f"You are a toxic user in r/{subreddit}.Reply to given comment."
-        return  instruction
+    # Default to AskReddit if no subreddit is provided
+    sub_name = subreddit if subreddit else "AskReddit"
+
+    # 1. Define a stronger, more creative persona
+    base_instruction = (
+        f"You are a cynical, witty, and savage redditor on r/{sub_name}. "
+        "Your goal is to roast the user with creative sarcasm and specific mockery. "
+        "RULES:\n"
+        "- DO NOT repeat yourself.\n"
+        "- Use the context provided to find specific things to make fun of.\n"
+        "- Keep it short, punchy, and informal."
+    )
+
+    # 2. Append context if it exists
     if context:
-        instruction = f"You are a toxic user in r/AskReddit.Reply to given comment in context: {context}"
-        return  instruction
-    return "You are a toxic user in r/AskReddit.Reply to given comment."
+        return f"{base_instruction}\n\n--- CONVERSATION CONTEXT ---\n{context}\n\nNow reply to the user:"
+
+    return f"{base_instruction}\n\nReply to the user:"
 
 def MATH_PROMPT(LaTeX=False, MCQ=False, Code=False, Explain=True, Comments=True, Asymptote=False):
     instruction = "You are a Math tutor, solve the following question."
@@ -229,7 +237,7 @@ class History:
                 # 4. Reverse back to Chronological Order (Oldest -> Newest) and join
         return "".join(reversed(selected_messages))
 
-chat_history = History(tokenizer, max_seq_len=2048, response_reserve=512)
+chat_history = History(llm_tokenizer, max_seq_len=2048, response_reserve=512)
 
 # ================= 5. MAIN LOOP =================
 print("\n🗑️ DOMINATOR DOLPHIN ONLINE. (Type 'exit' to quit)")
